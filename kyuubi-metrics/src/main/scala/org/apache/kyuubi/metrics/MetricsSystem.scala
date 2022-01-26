@@ -53,6 +53,11 @@ class MetricsSystem extends CompositeService("MetricsSystem") {
     timer.update(duration, unit)
   }
 
+  def markMeter(key: String, value: Long = 1): Unit = {
+    val meter = registry.meter(key)
+    meter.mark(value)
+  }
+
   def registerGauge[T](name: String, value: => T, default: T): Unit = {
     registry.register(
       MetricRegistry.name(name),
@@ -62,10 +67,13 @@ class MetricsSystem extends CompositeService("MetricsSystem") {
   }
 
   override def initialize(conf: KyuubiConf): Unit = synchronized {
-    registry.registerAll(new GarbageCollectorMetricSet)
-    registry.registerAll(new MemoryUsageGaugeSet)
-    registry.registerAll(new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer))
-    registry.registerAll(new ThreadStatesGaugeSet)
+    registry.registerAll(MetricsConstants.GC_METRIC, new GarbageCollectorMetricSet)
+    registry.registerAll(MetricsConstants.MEMORY_USAGE, new MemoryUsageGaugeSet)
+    registry.registerAll(
+      MetricsConstants.BUFFER_POOL,
+      new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer))
+    registry.registerAll(MetricsConstants.THREAD_STATE, new ThreadStatesGaugeSet)
+    registry.registerAll(MetricsConstants.CLASS_LOADING, new ClassLoadingGaugeSet)
 
     conf.get(METRICS_REPORTERS).map(ReporterType.withName).foreach {
       case JSON => addService(new JsonReporterService(registry))
@@ -105,5 +113,4 @@ object MetricsSystem {
       tracing(_.updateTimer(name, System.nanoTime() - startTime, TimeUnit.NANOSECONDS))
     }
   }
-
 }

@@ -37,7 +37,10 @@ class FlinkSQLOperationManager extends OperationManager("FlinkSQLOperationManage
     addOperation(op)
   }
 
-  override def newGetTypeInfoOperation(session: Session): Operation = null
+  override def newGetTypeInfoOperation(session: Session): Operation = {
+    val op = new GetTypeInfo(session)
+    addOperation(op)
+  }
 
   override def newGetCatalogsOperation(session: Session): Operation = {
     val op = new GetCatalogs(session)
@@ -47,7 +50,10 @@ class FlinkSQLOperationManager extends OperationManager("FlinkSQLOperationManage
   override def newGetSchemasOperation(
       session: Session,
       catalog: String,
-      schema: String): Operation = null
+      schema: String): Operation = {
+    val op = new GetSchemas(session, catalog, schema)
+    addOperation(op)
+  }
 
   override def newGetTablesOperation(
       session: Session,

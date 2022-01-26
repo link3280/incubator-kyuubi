@@ -649,7 +649,7 @@ object KyuubiConf {
     .doc("The check interval for engine timeout")
     .version("1.0.0")
     .timeConf
-    .checkValue(_ >= Duration.ofSeconds(3).toMillis, "Minimum 3 seconds")
+    .checkValue(_ >= Duration.ofSeconds(1).toMillis, "Minimum 1 seconds")
     .createWithDefault(Duration.ofMinutes(1).toMillis)
 
   val ENGINE_IDLE_TIMEOUT: ConfigEntry[Long] = buildConf("session.engine.idle.timeout")
@@ -1109,4 +1109,11 @@ object KyuubiConf {
       .transform(_.toUpperCase(Locale.ROOT))
       .checkValues(OperationLanguages.values.map(_.toString))
       .createWithDefault(OperationLanguages.SQL.toString)
+
+  val SERVER_NAME: OptionalConfigEntry[String] =
+    buildConf("server.name")
+      .doc("The name of Kyuubi Server.")
+      .version("1.5.0")
+      .stringConf
+      .createOptional
 }

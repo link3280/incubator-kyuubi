@@ -21,6 +21,12 @@ object MetricsConstants {
 
   final private val KYUUBI = "kyuubi."
 
+  final val GC_METRIC: String = KYUUBI + "gc"
+  final val MEMORY_USAGE: String = KYUUBI + "memory_usage"
+  final val BUFFER_POOL: String = KYUUBI + "buffer_pool"
+  final val THREAD_STATE: String = KYUUBI + "thread_state"
+  final val CLASS_LOADING: String = KYUUBI + "class_loading"
+
   final val EXEC_POOL_ALIVE: String = KYUUBI + "exec.pool.threads.alive"
   final val EXEC_POOL_ACTIVE: String = KYUUBI + "exec.pool.threads.active"
 
@@ -39,8 +45,11 @@ object MetricsConstants {
   final val OPERATION_OPEN: String = OPERATION + "opened"
   final val OPERATION_FAIL: String = OPERATION + "failed"
   final val OPERATION_TOTAL: String = OPERATION + "total"
+  final val OPERATION_STATE: String = OPERATION + "state"
 
   final private val BACKEND_SERVICE = KYUUBI + "backend_service."
+  final val BS_FETCH_LOG_ROWS_RATE = BACKEND_SERVICE + "fetch_log_rows_rate"
+  final val BS_FETCH_RESULT_ROWS_RATE = BACKEND_SERVICE + "fetch_result_rows_rate"
   final val BS_OPEN_SESSION = BACKEND_SERVICE + "open_session"
   final val BS_CLOSE_SESSION = BACKEND_SERVICE + "close_session"
   final val BS_GET_INFO = BACKEND_SERVICE + "get_info"

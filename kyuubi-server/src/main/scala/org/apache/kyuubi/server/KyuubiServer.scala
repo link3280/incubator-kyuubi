@@ -89,7 +89,10 @@ object KyuubiServer extends Logging {
       }
     }
 
-    val server = new KyuubiServer()
+    val server = conf.get(KyuubiConf.SERVER_NAME) match {
+      case Some(s) => new KyuubiServer(s)
+      case _ => new KyuubiServer()
+    }
     try {
       server.initialize(conf)
     } catch {
@@ -136,7 +139,7 @@ class KyuubiServer(name: String) extends Serverable(name) {
   def this() = this(classOf[KyuubiServer].getSimpleName)
 
   override val backendService: AbstractBackendService =
-    new KyuubiBackendService() with BackendServiceTimeMetric
+    new KyuubiBackendService() with BackendServiceMetric
 
   override lazy val frontendServices: Seq[AbstractFrontendService] =
     conf.get(FRONTEND_PROTOCOLS).map(FrontendProtocols.withName).map {
