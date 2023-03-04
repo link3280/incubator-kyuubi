@@ -231,6 +231,7 @@ class ZookeeperDiscoveryClient(conf: KyuubiConf) extends DiscoveryClient {
       version: Option[String] = None,
       external: Boolean = false): Unit = {
     val instance = serviceDiscovery.fe.connectionUrl
+    debug(s"Registering Zookeeper discovery service for in namespace $namespace")
     watcher = new DeRegisterWatcher(instance, serviceDiscovery)
     serviceNode = createPersistentNode(conf, namespace, instance, version, external)
     // Set a watch on the serviceNode

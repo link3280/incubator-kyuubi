@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.ResultKind;
 import org.apache.flink.table.api.TableResult;
 import org.apache.flink.table.catalog.Column;
@@ -106,6 +108,21 @@ public class ResultSet {
         + ", changeFlags="
         + changeFlags
         + '}';
+  }
+
+  public static ResultSet fromJobId(JobID jobID) {
+    Row[] data;
+    if (jobID != null) {
+      data = new Row[] {Row.of(jobID.toString())};
+    } else {
+      // should not happen
+      data = new Row[] {Row.of("(Empty Job ID)")};
+    }
+    return builder()
+        .resultKind(ResultKind.SUCCESS_WITH_CONTENT)
+        .columns(Column.physical("result", DataTypes.STRING()))
+        .data(data)
+        .build();
   }
 
   public static ResultSet fromTableResult(TableResult tableResult) {
