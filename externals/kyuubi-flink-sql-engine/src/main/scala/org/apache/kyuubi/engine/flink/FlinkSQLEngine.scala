@@ -74,6 +74,7 @@ object FlinkSQLEngine extends Logging {
     FlinkEngineUtils.checkFlinkVersion()
 
     try {
+      kyuubiConf.loadFileDefaults()
       Utils.fromCommandLineArgs(args, kyuubiConf)
       val flinkConfDir = sys.env.getOrElse(
         "FLINK_CONF_DIR", {
@@ -122,7 +123,7 @@ object FlinkSQLEngine extends Logging {
       kyuubiConf.setIfMissing(KyuubiConf.FRONTEND_THRIFT_BINARY_BIND_PORT, 0)
 
       startEngine(engineContext)
-      info("started engine...")
+      info("Flink engine started")
 
       // blocking main thread
       countDownLatch.await()
