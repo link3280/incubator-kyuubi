@@ -101,6 +101,11 @@ object FlinkSQLEngine extends Logging {
             val appName = s"kyuubi_${user}_flink_${Instant.now}"
             flinkConf.setString("yarn.application.name", appName)
           }
+          if (flinkConf.containsKey("high-availability.cluster-id")) {
+            flinkConf.setString(
+              "yarn.application.id",
+              flinkConf.toMap.get("high-availability.cluster-id"))
+          }
         case "kubernetes-application" =>
           if (!flinkConf.containsKey("kubernetes.cluster-id")) {
             val appName = s"kyuubi-${user}-flink-${Instant.now}"

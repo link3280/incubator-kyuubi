@@ -17,9 +17,8 @@
 
 package org.apache.kyuubi.engine.flink
 
-import java.io.{File, FilenameFilter}
-import java.nio.file.{Files, Paths}
-import java.util
+import java.io.{File, FileOutputStream}
+import java.util.Properties
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -31,7 +30,7 @@ import org.apache.kyuubi.config.KyuubiConf
 import org.apache.kyuubi.config.KyuubiConf._
 import org.apache.kyuubi.config.KyuubiReservedKeys.KYUUBI_SESSION_USER_KEY
 import org.apache.kyuubi.engine.{KyuubiApplicationManager, ProcBuilder}
-import org.apache.kyuubi.engine.flink.FlinkProcessBuilder._
+import org.apache.kyuubi.engine.flink.FlinkProcessBuilder.TAG_KEY
 import org.apache.kyuubi.operation.log.OperationLog
 
 /**
@@ -55,72 +54,38 @@ class FlinkProcessBuilder(
 
   override protected def mainClass: String = "org.apache.kyuubi.engine.flink.FlinkSQLEngine"
 
+  override def clusterManager(): Option[String] = Some("yarn")
+
   override protected val commands: Array[String] = {
     KyuubiApplicationManager.tagApplication(engineRefId, shortName, clusterManager(), conf)
     val buffer = new ArrayBuffer[String]()
-    buffer += executable
+    buffer += s"$flinkHome${File.separator}bin${File.separator}flink"
+    buffer += "run-application"
 
-    val memory = conf.get(ENGINE_FLINK_MEMORY)
-    buffer += s"-Xmx$memory"
     val javaOptions = conf.get(ENGINE_FLINK_JAVA_OPTIONS)
     if (javaOptions.isDefined) {
       buffer += javaOptions.get
     }
 
-    buffer += "-cp"
-    val classpathEntries = new util.LinkedHashSet[String]
-    // flink engine runtime jar
-    mainResource.foreach(classpathEntries.add)
-    // flink sql client jar
-    val flinkSqlClientPath = Paths.get(flinkHome)
-      .resolve("opt")
-      .toFile
-      .listFiles(new FilenameFilter {
-        override def accept(dir: File, name: String): Boolean = {
-          name.toLowerCase.startsWith("flink-sql-client")
-        }
-      }).head.getAbsolutePath
-    classpathEntries.add(flinkSqlClientPath)
+    // add session context kyuubi configurations
+    conf.set(KYUUBI_SESSION_USER_KEY, proxyUser)
 
-    // jars from flink lib
-    classpathEntries.add(s"$flinkHome${File.separator}lib${File.separator}*")
+    // write kyuubi configuration
+    val persistedConf = new Properties()
+    val ioTmpDir = System.getProperty("java.io.tmpdir")
+    val tmpKyuubiConf = s"$ioTmpDir${File.separator}$KYUUBI_CONF_FILE_NAME";
+    persistedConf.putAll(conf.getAll.asJava)
+    persistedConf.store(
+      new FileOutputStream(tmpKyuubiConf),
+      "persisted Kyuubi conf for Flink SQL engine")
+    buffer += s"-Dyarn.ship-files=$tmpKyuubiConf"
+    buffer += s"-Dyarn.tags=${conf.getOption(TAG_KEY).get}"
+    buffer += "-Dcontainerized.master.env.FLINK_CONF_DIR=."
+    buffer += "--class"
+    buffer += s"$mainClass"
 
-    // classpath contains flink configurations, default to flink.home/conf
-    classpathEntries.add(env.getOrElse("FLINK_CONF_DIR", s"$flinkHome${File.separator}conf"))
-    // classpath contains hadoop configurations
-    env.get("HADOOP_CONF_DIR").foreach(classpathEntries.add)
-    env.get("YARN_CONF_DIR").foreach(classpathEntries.add)
-    env.get("HBASE_CONF_DIR").foreach(classpathEntries.add)
-    val hadoopCp = env.get(FLINK_HADOOP_CLASSPATH_KEY)
-    hadoopCp.foreach(classpathEntries.add)
-    val extraCp = conf.get(ENGINE_FLINK_EXTRA_CLASSPATH)
-    extraCp.foreach(classpathEntries.add)
-    if (hadoopCp.isEmpty && extraCp.isEmpty) {
-      warn(s"The conf of ${FLINK_HADOOP_CLASSPATH_KEY} and ${ENGINE_FLINK_EXTRA_CLASSPATH.key}" +
-        s" is empty.")
-      debug("Detected development environment")
-      mainResource.foreach { path =>
-        val devHadoopJars = Paths.get(path).getParent
-          .resolve(s"scala-$SCALA_COMPILE_VERSION")
-          .resolve("jars")
-        if (!Files.exists(devHadoopJars)) {
-          throw new KyuubiException(s"The path $devHadoopJars does not exists. " +
-            s"Please set ${FLINK_HADOOP_CLASSPATH_KEY} or ${ENGINE_FLINK_EXTRA_CLASSPATH.key} " +
-            s"for configuring location of hadoop client jars, etc")
-        }
-        classpathEntries.add(s"$devHadoopJars${File.separator}*")
-      }
-    }
-    buffer += classpathEntries.asScala.mkString(File.pathSeparator)
-    buffer += mainClass
+    buffer += s"${mainResource.get}"
 
-    buffer += "--conf"
-    buffer += s"$KYUUBI_SESSION_USER_KEY=$proxyUser"
-
-    for ((k, v) <- conf.getAll) {
-      buffer += "--conf"
-      buffer += s"$k=$v"
-    }
     buffer.toArray
   }
 
