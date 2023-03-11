@@ -28,6 +28,7 @@ import scala.collection.mutable.ListBuffer
 
 import org.apache.flink.client.cli.{DefaultCLI, GenericCLI}
 import org.apache.flink.configuration.{Configuration, DeploymentOptions, GlobalConfiguration}
+import org.apache.flink.table.api.TableEnvironment
 import org.apache.flink.table.client.SqlClientException
 import org.apache.flink.table.client.gateway.context.DefaultContext
 import org.apache.flink.util.JarUtils
@@ -129,6 +130,13 @@ object FlinkSQLEngine extends Logging {
 
       startEngine(engineContext)
       info("Flink engine started")
+
+      // trigger an execution to initiate EmbeddedExecutor
+      info("Running initial Flink SQL")
+      val tableEnv = TableEnvironment.create(flinkConf)
+      val res = tableEnv.executeSql("select 1")
+      res.await()
+      info("Initial Flink SQL finished")
 
       // blocking main thread
       countDownLatch.await()
