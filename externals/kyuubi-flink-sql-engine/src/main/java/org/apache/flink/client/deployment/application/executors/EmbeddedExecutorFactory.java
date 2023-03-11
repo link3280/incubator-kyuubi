@@ -49,7 +49,7 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedExecutorFactory.class);
 
   public EmbeddedExecutorFactory() {
-    LOGGER.info(
+    LOGGER.debug(
         "{} loaded in thread {} with classloader {}.",
         this.getClass().getCanonicalName(),
         Thread.currentThread().getName(),
