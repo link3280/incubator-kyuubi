@@ -21,6 +21,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
@@ -77,7 +78,10 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
     checkState(EmbeddedExecutorFactory.submittedJobIds == null);
     checkState(EmbeddedExecutorFactory.dispatcherGateway == null);
     checkState(EmbeddedExecutorFactory.retryExecutor == null);
-    EmbeddedExecutorFactory.submittedJobIds = checkNotNull(submittedJobIds);
+    // submittedJobIds would be always 1, because we create a new list to avoid concurrent access
+    // issues
+    EmbeddedExecutorFactory.submittedJobIds =
+        new ConcurrentLinkedQueue<>(checkNotNull(submittedJobIds));
     EmbeddedExecutorFactory.dispatcherGateway = checkNotNull(dispatcherGateway);
     EmbeddedExecutorFactory.retryExecutor = checkNotNull(retryExecutor);
   }
@@ -100,6 +104,7 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
   @Override
   public PipelineExecutor getExecutor(final Configuration configuration) {
     checkNotNull(configuration);
+    LOGGER.debug("Submitting new job. Job already submitted: {}.", submittedJobIds.size());
     return new EmbeddedExecutor(
         submittedJobIds,
         dispatcherGateway,
