@@ -95,8 +95,6 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
   public boolean isCompatibleWith(final Configuration configuration) {
     // override Flink's implementation to allow usage in Kyuubi
     LOGGER.debug("matching execution target: {}", configuration.get(DeploymentOptions.TARGET));
-    LOGGER.debug("setting application id to {}", System.getenv("_APP_ID"));
-    configuration.setString(YarnConfigOptions.APPLICATION_ID, System.getenv("_APP_ID"));
     return configuration.get(DeploymentOptions.TARGET).equalsIgnoreCase("yarn-application")
         && configuration.get(YarnConfigOptions.APPLICATION_TAGS).toLowerCase().contains("kyuubi");
   }
