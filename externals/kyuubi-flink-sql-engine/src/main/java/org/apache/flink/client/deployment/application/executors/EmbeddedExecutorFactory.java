@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 @Internal
 public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
 
+  private static Collection<JobID> bootstrapJobIds;
+
   private static Collection<JobID> submittedJobIds;
 
   private static DispatcherGateway dispatcherGateway;
@@ -82,6 +84,7 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
     // issues
     EmbeddedExecutorFactory.submittedJobIds =
         new ConcurrentLinkedQueue<>(checkNotNull(submittedJobIds));
+    EmbeddedExecutorFactory.bootstrapJobIds = submittedJobIds;
     EmbeddedExecutorFactory.dispatcherGateway = checkNotNull(dispatcherGateway);
     EmbeddedExecutorFactory.retryExecutor = checkNotNull(retryExecutor);
   }
@@ -102,9 +105,16 @@ public class EmbeddedExecutorFactory implements PipelineExecutorFactory {
   @Override
   public PipelineExecutor getExecutor(final Configuration configuration) {
     checkNotNull(configuration);
-    LOGGER.debug("Submitting new job. Job already submitted: {}.", submittedJobIds.size());
+    Collection<JobID> executorJobIDs;
+    if (bootstrapJobIds.size() > 0) {
+      LOGGER.info("Submitting new Kyuubi job. Job already submitted: {}.", submittedJobIds.size());
+      executorJobIDs = submittedJobIds;
+    } else {
+      LOGGER.info("Bootstrapping Flink SQL engine.");
+      executorJobIDs = bootstrapJobIds;
+    }
     return new EmbeddedExecutor(
-        submittedJobIds,
+        executorJobIDs,
         dispatcherGateway,
         (jobId, userCodeClassloader) -> {
           final Time timeout =

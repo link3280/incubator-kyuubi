@@ -131,12 +131,7 @@ object FlinkSQLEngine extends Logging {
       startEngine(engineContext)
       info("Flink engine started")
 
-      // trigger an execution to initiate EmbeddedExecutor
-      info("Running initial Flink SQL")
-      val tableEnv = TableEnvironment.create(flinkConf)
-      val res = tableEnv.executeSql("select 1")
-      res.await()
-      info("Initial Flink SQL finished")
+      bootstrapFlinkExecutor(flinkConf)
 
       // blocking main thread
       countDownLatch.await()
@@ -158,6 +153,15 @@ object FlinkSQLEngine extends Logging {
       engine.start()
       addShutdownHook(() => engine.stop(), FLINK_ENGINE_SHUTDOWN_PRIORITY + 1)
     }
+  }
+
+  private def bootstrapFlinkExecutor(flinkConf: Configuration) = {
+    // trigger an execution to initiate EmbeddedExecutor
+    info("Running initial Flink SQL")
+    val tableEnv = TableEnvironment.create(flinkConf)
+    val res = tableEnv.executeSql("select 'kyuubi'")
+    res.await()
+    info("Initial Flink SQL finished")
   }
 
   private def discoverDependencies(
